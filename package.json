@@ -2,7 +2,7 @@
   "name": "libra-worker",
   "version": "1.0.0",
   "main": "worker.js",
-  "type":"module"
+  "type":"module",
   "dependencies": {
     "@aws-sdk/client-s3": "^3.901.0",
     "bullmq": "^5.61.0",
@@ -13,4 +13,5 @@
     "tmp-promise": "^3.0.3"
   }
 }
+
 
