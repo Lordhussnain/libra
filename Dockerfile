@@ -1,104 +1,62 @@
-# Dockerfile.libreoffice — focused PDF -> DOCX worker image (works headless)
+# Dockerfile for LibreOffice worker (fixed: includes JRE + java-common)
 FROM node:20-bullseye-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
-ENV HOME=/home/appuser
-WORKDIR /home/appuser
 
-# Install Java (headless) + LibreOffice (meta-package) + PDF import filter + helpers
+# Install LibreOffice, Java (headless) and utilities required by conversions
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
       ca-certificates \
+      wget \
+      gnupg \
       openjdk-11-jre-headless \
-      libreoffice \
+      libreoffice-core \
+      libreoffice-writer \
+      libreoffice-impress \
+      libreoffice-common \
       libreoffice-java-common \
-      libreoffice-pdfimport \
-      ghostscript \
+      libreoffice-calc \
+      libreoffice-draw \
+      libreoffice-pdfimport \  # Added for PDF import filters (writer_pdf_import, impress_pdf_import, etc.)
       poppler-utils \
+      imagemagick \
       qpdf \
       fonts-dejavu-core \
-      wget \
       gzip \
       unzip \
       procps \
     && rm -rf /var/lib/apt/lists/*
 
-# Create non-root user for runtime
+# Create non-root user for running the worker
 RUN useradd -m -s /bin/bash appuser
 
-# Copy node manifests (optional — keep if your worker uses node packages)
-COPY package.json pnpm-lock.yaml* ./
-
-# Install production deps (if you use node worker.js); keep || true to avoid CI break if no lockfile
-RUN set -eux; corepack enable; corepack prepare pnpm@latest --activate; pnpm install --prod --frozen-lockfile || true
-
-# Copy app code
-COPY . .
-
-# Ensure LibreOffice has a config dir and tmp dir that appuser owns
-RUN mkdir -p $HOME/tmp $HOME/.config/libreoffice/4/user && \
-    chmod 700 $HOME/tmp && chown -R appuser:appuser $HOME
-
-USER appuser
-ENV NODE_ENV=production
-ENV TMPDIR=$HOME/tmp
-WORKDIR $HOME
-
-# Lightweight healthcheck for soffice presence
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD sh -c "command -v soffice >/dev/null && soffice --version >/dev/null || exit 1"
-
-# Default command — run your worker (adjust if needed)
-CMD ["node", "worker.js"]
-# Dockerfile.libreoffice — focused PDF -> DOCX worker image (works headless)
-FROM node:20-bullseye-slim
-
-ENV DEBIAN_FRONTEND=noninteractive
-ENV HOME=/home/appuser
 WORKDIR /home/appuser
 
-# Install Java (headless) + LibreOffice (meta-package) + PDF import filter + helpers
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-      ca-certificates \
-      openjdk-11-jre-headless \
-      libreoffice \
-      libreoffice-java-common \
-      libreoffice-pdfimport \
-      ghostscript \
-      poppler-utils \
-      qpdf \
-      fonts-dejavu-core \
-      wget \
-      gzip \
-      unzip \
-      procps \
-    && rm -rf /var/lib/apt/lists/*
+# Copy dependency manifests first to maximize build cache
+COPY package.json pnpm-lock.yaml ./
 
-# Create non-root user for runtime
-RUN useradd -m -s /bin/bash appuser
+# Prepare pnpm and install production deps
+RUN set -eux; \
+    corepack enable; \
+    corepack prepare pnpm@latest --activate; \
+    pnpm install --prod --frozen-lockfile
 
-# Copy node manifests (optional — keep if your worker uses node packages)
-COPY package.json pnpm-lock.yaml* ./
-
-# Install production deps (if you use node worker.js); keep || true to avoid CI break if no lockfile
-RUN set -eux; corepack enable; corepack prepare pnpm@latest --activate; pnpm install --prod --frozen-lockfile || true
-
-# Copy app code
+# Copy application code
 COPY . .
 
-# Ensure LibreOffice has a config dir and tmp dir that appuser owns
-RUN mkdir -p $HOME/tmp $HOME/.config/libreoffice/4/user && \
-    chmod 700 $HOME/tmp && chown -R appuser:appuser $HOME
+# Ensure tmp dir exists and set ownership
+RUN mkdir -p /home/appuser/tmp && chmod 700 /home/appuser/tmp && chown -R appuser:appuser /home/appuser
 
+# Switch to non-root user
 USER appuser
+
+# runtime env
 ENV NODE_ENV=production
-ENV TMPDIR=$HOME/tmp
-WORKDIR $HOME
+ENV TMPDIR=/home/appuser/tmp
 
-# Lightweight healthcheck for soffice presence
+# healthcheck: ensure soffice is available and responds
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD sh -c "command -v soffice >/dev/null && soffice --version >/dev/null || exit 1"
+  CMD sh -c "command -v soffice > /dev/null && soffice --version | grep -Ei 'libreoffice|soffice' || exit 1"
 
-# Default command — run your worker (adjust if needed)
+# Run the worker
 CMD ["node", "worker.js"]
