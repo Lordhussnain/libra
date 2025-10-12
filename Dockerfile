@@ -3,16 +3,11 @@ FROM node:20-bullseye-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install LibreOffice, Java (headless), and utilities required by conversions
+# Install LibreOffice, Java (headless), and utilities, then add libreoffice-pdfimport manually
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
       ca-certificates \
       wget \
-      gnupg \
-    && wget -qO /etc/apt/trusted.gpg.d/libreoffice.gpg https://download.documentfoundation.org/libreoffice/deb/7.0.4/Release.key && \
-    echo "deb https://download.documentfoundation.org/libreoffice/deb/7.0.4/debian bullseye main" >> /etc/apt/sources.list.d/libreoffice.list && \
-    apt-get update && \
-    apt-get install -y --no-install-recommends \
       openjdk-11-jre-headless \
       libreoffice-core \
       libreoffice-writer \
@@ -21,7 +16,6 @@ RUN apt-get update && \
       libreoffice-java-common \
       libreoffice-calc \
       libreoffice-draw \
-      libreoffice-pdfimport \
       poppler-utils \
       imagemagick \
       qpdf \
@@ -29,7 +23,11 @@ RUN apt-get update && \
       gzip \
       unzip \
       procps \
-    && rm -rf /var/lib/apt/lists/*
+    && wget -q https://download.documentfoundation.org/libreoffice/stable/7.0.4/deb/x86_64/LibreOffice_7.0.4_Linux_x86-64_deb/DEBS/libreoffice-pdfimport_7.0.4.2-2_amd64.deb && \
+    dpkg -i libreoffice-pdfimport_7.0.4.2-2_amd64.deb && \
+    apt-get install -f -y && \
+    rm libreoffice-pdfimport_7.0.4.2-2_amd64.deb && \
+    rm -rf /var/lib/apt/lists/*
 
 # Create non-root user for running the worker
 RUN useradd -m -s /bin/bash appuser
