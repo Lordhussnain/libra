@@ -1,7 +1,6 @@
 # Dockerfile for LibreOffice worker (fixed: includes JRE + java-common)
 FROM node:20-bullseye-slim
 
-# avoid interactive prompts during apt operations
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Install LibreOffice, Java (headless) and utilities required by conversions
@@ -10,12 +9,12 @@ RUN apt-get update && \
       ca-certificates \
       wget \
       gnupg \
-      openjdk-11-jre-headless \            # <- Java runtime required by some export filters
+      openjdk-11-jre-headless \
       libreoffice-core \
       libreoffice-writer \
       libreoffice-impress \
       libreoffice-common \
-      libreoffice-java-common \            # <- exposes java-based export filters
+      libreoffice-java-common \
       libreoffice-calc \
       libreoffice-draw \
       poppler-utils \
