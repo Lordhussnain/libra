@@ -17,7 +17,8 @@ RUN apt-get update && \
       libreoffice-java-common \
       libreoffice-calc \
       libreoffice-draw \
-      libreoffice-pdfimport \  # Added for PDF import filters (writer_pdf_import, impress_pdf_import, etc.)
+      # Added for PDF import filters (writer_pdf_import, impress_pdf_import, etc.)
+      libreoffice-pdfimport \
       poppler-utils \
       imagemagick \
       qpdf \
