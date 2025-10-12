@@ -17,7 +17,6 @@ RUN apt-get update && \
       libreoffice-java-common \
       libreoffice-calc \
       libreoffice-draw \
-      # Added for PDF import filters (writer_pdf_import, impress_pdf_import, etc.)
       libreoffice-pdfimport \
       poppler-utils \
       imagemagick \
@@ -61,3 +60,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
 
 # Run the worker
 CMD ["node", "worker.js"]
+
